@@ -3,8 +3,8 @@
 #include "nirvana.h"
 
 int main(void) {
-    nir_cmd_goes_samsara();
-
+    nir_cmd_goes_samsara(NULL);
+    nir_show_todos();
     nir_cmd_t cmd = {0};
     if (!nir_cmd_init(&cmd)) {
         fprintf(stderr, "Couldn't initialize CMD\n");

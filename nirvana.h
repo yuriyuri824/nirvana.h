@@ -36,8 +36,10 @@ THE SOFTWARE.
 #if defined(__linux__)
     #include <linux/limits.h>
     #define NIR_ARG_MAX		(ARG_MAX)
+    #define NIR_NAME_MAX	(NAME_MAX)
 #else
-    #error "your platform isn't supported yet!"
+    #define NIRVANA_PLATFORM_UNKNOWN
+    #define NIR_ARG_MAX		(1024)
 #endif
 
 #define NIR_DEFAULT_ARRAY_CAP	(64)
@@ -48,6 +50,12 @@ THE SOFTWARE.
 #define NIR_INFO(...) {			\
     fprintf(stdout, "[NIR-INFO]: ");	\
     fprintf(stdout, __VA_ARGS__);	\
+}
+
+#define NIR_WARN(...) {				\
+    fprintf(stdout, "\033[93m[NIR-WARN]: ");	\
+    fprintf(stdout, __VA_ARGS__);		\
+    fprintf(stdout, "\033[39m");		\
 }
 
 #define NIR_ERROR(...) {		\
@@ -69,6 +77,9 @@ typedef struct {
 } nir_cmd_t;
 
 bool nir_cmd_init(nir_cmd_t *cmd) {
+#if defined(NIRVANA_PLATFORM_UNKNOWN)
+    NIR_WARN("Your platform isn't currently support, setting ARG_MAX to 1024\n");
+#endif
     cmd->capacity = NIR_DEFAULT_ARRAY_CAP;
     cmd->element = malloc(cmd->capacity * sizeof(char*));
     NIR_ASSERT(cmd->element,
@@ -81,7 +92,9 @@ bool nir_cmd_init(nir_cmd_t *cmd) {
 }
 
 void nir_cmd_append(nir_cmd_t *cmd, const char *str) {
-    /* NIR_INFO("entry[%zu]: \"%s\"\n", cmd->index, str); */
+    NIR_ASSERT((cmd->capacity == NIR_DEFAULT_ARRAY_CAP),
+        "Array must be initialized before appending!\n");
+
     if (cmd->index >= cmd->capacity) {
         size_t new_capacity = cmd->capacity * 2;
         cmd->element = realloc(cmd->element, new_capacity * sizeof(char*));
@@ -113,18 +126,41 @@ void nir_cmd_cleanup(nir_cmd_t *cmd) {
     NIR_INFO("Cleanup finished\n\n");
 }
 
-void nir_cmd_goes_samsara(void) {
-    NIR_INFO("Rebuilding nirvana.c ...\n");
+void nir_cmd_goes_samsara(char *build_name) {
+    if (build_name == NULL) build_name = "nirvana";
+    char buff[NIR_NAME_MAX] = {0};
+    strncpy(buff, build_name, strlen(build_name));
+    strncat(buff, ".c", strlen(buff) + strlen(".c") + 1);
+    
+    NIR_INFO("Rebuilding %s...\n", buff);
     nir_cmd_t cmd = {0};
     NIR_ASSERT(nir_cmd_init(&cmd),
         "Couldn't initialize CMD for rebuilding\n");
-    nir_cmd_append(&cmd, "gcc -o nirvana nirvana.c");
+    nir_cmd_append(&cmd, "gcc -o");
+    nir_cmd_append(&cmd, build_name);
+    nir_cmd_append(&cmd, buff);
     nir_cmd_append(&cmd, "-std=c99 -Wall -Werror -Wextra -pedantic -Wformat");
     nir_cmd_run(&cmd);
     
     nir_cmd_cleanup(&cmd);
 }
 
+void nir_show_todos(void) {
+    NIR_WARN("TODO LIST\n");
+    const char *todo_str[] = {
+        "[] Edit README.md about nir_cmd_goes_samsara()",
+        "[] Sync the commands",
+        NULL,
+    };
+    int index = 0;
+    while (todo_str[index] != NULL) ++index;
+    
+    for (int i = 0; i < index; ++i) {
+        NIR_WARN(todo_str[i]);
+        printf("\n");
+    }
+}
+ 
 #endif /* NIRVANA_IMPL */
 
 #endif /* _NIRVANA_H */
